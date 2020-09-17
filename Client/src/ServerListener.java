@@ -5,10 +5,12 @@ class ServerListener implements Runnable
 {
     private Socket clientSocket;
     private Thread t;
+    private GUI g;
 
-    public ServerListener(Socket socket)
+    public ServerListener(Socket socket, GUI g)
     {
         clientSocket = socket;
+        this.g = g;
         t = new Thread(this);
         t.start();
     }
@@ -17,16 +19,24 @@ class ServerListener implements Runnable
     {
         try
         {
-            BufferedReader inFromServer =
-                new BufferedReader(
-                        new InputStreamReader(
-                            clientSocket.getInputStream()));
-            while(!clientSocket.isClosed())
+            Message fromServer;
+            ObjectInputStream inFromServer =
+                new ObjectInputStream(clientSocket.getInputStream());
+            while(true)
             {
-                System.out.println("FROM SERVER: " +
-                        inFromServer.readLine());
+                fromServer = (Message)inFromServer.readObject();
+                g.displayMessage(fromServer);
             }
         }
+
+        catch (SocketException se)
+        {
+            if (clientSocket.isClosed())
+            {
+                System.out.println("Disconnected");
+            }
+        }
+
         catch (Exception e)
         {
             System.out.println(e);

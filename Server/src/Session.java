@@ -5,13 +5,20 @@ import java.util.LinkedList;
 public class Session implements Runnable
 {
     private Socket connectionSocket;
+    private ObjectInputStream inFromClient;
+    private ObjectOutputStream outToClient;
     private Thread t;
     private LinkedList<Message> allMessages;
     private boolean isDead;
 
     public Session(Socket connectionSocket, LinkedList<Message> allMessages)
+		    throws Exception
     {
         this.connectionSocket = connectionSocket;
+        inFromClient =
+            new ObjectInputStream(connectionSocket.getInputStream());
+        outToClient =
+            new ObjectOutputStream(connectionSocket.getOutputStream());
         this.allMessages = allMessages;
         isDead = false;
         t = new Thread(this);
@@ -20,21 +27,15 @@ public class Session implements Runnable
 
     public void run()
     {
-        String clientSentence;
-        String modifiedSentence;
+        Message fromClient;
         try
         {
-            BufferedReader inFromClient =
+            /*BufferedReader inFromClient =
                 new BufferedReader(new InputStreamReader(
-                            connectionSocket.getInputStream()));
-            while(!((clientSentence = inFromClient.readLine()).equals("close")))
-            {
-                modifiedSentence = clientSentence.toUpperCase() + '\n';
-                allMessages.add(new Message(
-                            Integer.toString(connectionSocket.getPort()),
-                            modifiedSentence)
-                        );
-            }
+                            connectionSocket.getInputStream()));*/
+            while(!(fromClient = (Message)inFromClient.readObject())
+                    .isClosingMessage())
+                allMessages.add(fromClient);
             connectionSocket.close();
             isDead = true;
         }
@@ -51,10 +52,10 @@ public class Session implements Runnable
         {
             try
             {
-                DataOutputStream outToClient =
+                /*DataOutputStream outToClient =
                     new DataOutputStream(
-                            connectionSocket.getOutputStream());
-                outToClient.writeBytes(message.sender + " " + message.content);
+                            connectionSocket.getOutputStream());*/
+                outToClient.writeObject(message);
             }
             catch (Exception e)
             {
